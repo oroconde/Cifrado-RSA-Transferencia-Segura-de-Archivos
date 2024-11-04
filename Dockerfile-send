@@ -1,0 +1,33 @@
+FROM kalilinux/kali-rolling
+
+# Actualizar el repositorio y agregar certificados CA
+RUN apt-get update --fix-missing && \
+    apt-get install -y --no-install-recommends ca-certificates && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+# Actualizar repositorios e instalar herramientas necesarias
+RUN apt-get update --fix-missing && \
+    apt-get install -y --no-install-recommends openssl zip sshpass openssh-client curl jq && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+# Crear directorio de trabajo
+WORKDIR /home/sftp-user
+
+# Copiar los archivos de prueba desde el host
+COPY documentos-electronicos-a-enviar/FE-Consecutivo-2024.11.05.txt /home/sftp-user/
+COPY documentos-electronicos-a-enviar/NOM-Consecutivo-2024.11.05.txt /home/sftp-user/
+
+# Copiar la clave pública
+COPY proveedor_public_key.pem /home/sftp-user/proveedor_public_key.pem
+
+# Copiar el script de envío y recepción
+COPY script-envio.sh /usr/local/bin/script-envio.sh
+COPY script-recepcion.sh /usr/local/bin/script-recepcion.sh
+
+# Dar permisos de ejecución a los scripts
+RUN chmod +x /usr/local/bin/script-envio.sh /usr/local/bin/script-recepcion.sh
+
+# Comando por defecto para ejecutar el script de envío
+CMD ["/usr/local/bin/script-envio.sh", "servidor_sftp"]

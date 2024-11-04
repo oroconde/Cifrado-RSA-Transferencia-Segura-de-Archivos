@@ -1,0 +1,34 @@
+services:
+  contenedor-send:
+    build:
+      context: .
+      dockerfile: Dockerfile-send
+    image: mi-proyecto/contenedor-send:local
+    container_name: contenedor_send
+    networks:
+      - red-archivos
+    environment:
+      - DESTINO_IP=servidor-sftp
+      - VAULT_ADDR=http://vault:1234
+      - VAULT_TOKEN=myroot
+
+  servidor-sftp:
+    build:
+      context: .
+      dockerfile: Dockerfile-reception
+    image: mi-proyecto/servidor-sftp:local
+    container_name: servidor_sftp
+    depends_on:
+      - contenedor-send
+    networks:
+      - red-archivos
+    ports:
+      - "2222:22"
+    environment:
+      - VAULT_ADDR=http://vault:1234
+      - VAULT_TOKEN=myroot
+
+networks:
+  red-archivos:
+    external: true
+    driver: bridge

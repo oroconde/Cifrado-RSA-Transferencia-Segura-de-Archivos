@@ -1,0 +1,36 @@
+# Etapa 1: Construcción del contenedor de envío
+FROM contenedor-send:local AS contenedor-send
+
+# Etapa 2: Construcción del servidor SFTPß
+FROM kalilinux/kali-rolling
+
+# Cambiar el mirror de Kali Linux
+RUN echo "deb http://http.kali.org/kali kali-rolling main contrib non-free" > /etc/apt/sources.list
+
+# Instalar los certificados CA y actualizar los repositorios
+RUN apt-get update --fix-missing && \
+    apt-get install -y --no-install-recommends ca-certificates && \
+    update-ca-certificates && \
+    apt-get install -y --no-install-recommends unzip openssh-server curl jq && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+# Crear el directorio para el proceso SSH
+RUN mkdir -p /var/run/sshd
+
+# Configurar el acceso root y ajustes de configuración SSH
+RUN echo 'root:centos' | chpasswd && \
+    sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config && \
+    sed -i 's/PasswordAuthentication no/PasswordAuthentication yes/' /etc/ssh/sshd_config && \
+    sed -i 's/UsePAM yes/UsePAM no/' /etc/ssh/sshd_config
+
+# Crear usuario y su directorio de trabajo para SFTP
+RUN useradd -m sftp-user && echo 'sftp-user:centos' | chpasswd
+RUN mkdir -p /home/sftp-user && \
+    chown -R sftp-user:sftp-user /home/sftp-user
+
+# Exponer el puerto SSH para las conexiones SFTP
+EXPOSE 22
+
+# Comando por defecto para iniciar el servidor SSH
+CMD ["/usr/sbin/sshd", "-D"]
